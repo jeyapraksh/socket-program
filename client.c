@@ -4,33 +4,41 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-int main() {
-    int sockfd;
-    struct sockaddr_in server_addr;
-    socklen_t len;
-    char buffer[1024] = "Networking Lab";
+#define PORT 8080
+#define BUFFER_SIZE 1024
 
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+int main() {
+    int sock;
+    struct sockaddr_in server_addr;
+    char buffer[BUFFER_SIZE];
+    int bytes;
+
+    FILE *fp;
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8080);
+    server_addr.sin_port = htons(PORT);
 
     inet_pton(AF_INET, "127.0.0.1",
               &server_addr.sin_addr);
 
-    len = sizeof(server_addr);
+    connect(sock,
+           (struct sockaddr*)&server_addr,
+           sizeof(server_addr));
 
-    sendto(sockfd, buffer, strlen(buffer), 0,
-           (struct sockaddr*)&server_addr, len);
+    fp = fopen("input.txt", "r");
 
-    printf("Sent: %s\n", buffer);
+    while ((bytes = fread(buffer, 1,
+                         BUFFER_SIZE, fp)) > 0) {
 
-    recvfrom(sockfd, buffer, sizeof(buffer), 0,
-             (struct sockaddr*)&server_addr, &len);
+        send(sock, buffer, bytes, 0);
+    }
 
-    printf("Received: %s\n", buffer);
+    fclose(fp);
+    close(sock);
 
-    close(sockfd);
+    printf("File Transfer Successful\n");
 
     return 0;
 }

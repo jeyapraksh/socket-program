@@ -3,41 +3,52 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <ctype.h>
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
 
 int main() {
-    int sockfd;
+    int server_fd, client_fd;
     struct sockaddr_in server_addr, client_addr;
-    socklen_t len;
-    char buffer[1024];
-    int i;
+    socklen_t addr_size;
+    char buffer[BUFFER_SIZE];
+    int bytes;
 
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    FILE *fp;
+
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8080);
+    server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    bind(sockfd,
+    bind(server_fd,
          (struct sockaddr*)&server_addr,
          sizeof(server_addr));
 
-    printf("UDP Server Waiting...\n");
+    listen(server_fd, 5);
 
-    len = sizeof(client_addr);
+    printf("Waiting for client...\n");
 
-    recvfrom(sockfd, buffer, sizeof(buffer), 0,
-             (struct sockaddr*)&client_addr, &len);
+    addr_size = sizeof(client_addr);
 
-    printf("Received: %s\n", buffer);
+    client_fd = accept(server_fd,
+                      (struct sockaddr*)&client_addr,
+                      &addr_size);
 
-    for(i = 0; buffer[i]; i++)
-        buffer[i] = toupper(buffer[i]);
+    fp = fopen("received.txt", "w");
 
-    sendto(sockfd, buffer, strlen(buffer), 0,
-           (struct sockaddr*)&client_addr, len);
+    while ((bytes = recv(client_fd, buffer,
+                        BUFFER_SIZE, 0)) > 0) {
 
-    close(sockfd);
+        fwrite(buffer, 1, bytes, fp);
+    }
+
+    printf("File Transfer Successful\n");
+
+    fclose(fp);
+    close(client_fd);
+    close(server_fd);
 
     return 0;
 }
