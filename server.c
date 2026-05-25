@@ -3,18 +3,29 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
 
-int main() {
-    int server_fd, client_fd;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t addr_size;
+void *handle_client(void *arg) {
+    int client_fd = *(int*)arg;
     char buffer[BUFFER_SIZE];
-    int bytes;
 
-    FILE *fp;
+    recv(client_fd, buffer, sizeof(buffer), 0);
+
+    printf("%s\n", buffer);
+
+    close(client_fd);
+    free(arg);
+
+    return NULL;
+}
+
+int main() {
+    int server_fd, *client_fd;
+    struct sockaddr_in server_addr;
+    pthread_t tid;
 
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -26,28 +37,24 @@ int main() {
          (struct sockaddr*)&server_addr,
          sizeof(server_addr));
 
-    listen(server_fd, 5);
+    listen(server_fd, 10);
 
-    printf("Waiting for client...\n");
+    printf("Server Waiting...\n");
 
-    addr_size = sizeof(client_addr);
+    while (1) {
 
-    client_fd = accept(server_fd,
-                      (struct sockaddr*)&client_addr,
-                      &addr_size);
+        client_fd = malloc(sizeof(int));
 
-    fp = fopen("received.txt", "w");
+        *client_fd = accept(server_fd,
+                           NULL, NULL);
 
-    while ((bytes = recv(client_fd, buffer,
-                        BUFFER_SIZE, 0)) > 0) {
+        pthread_create(&tid, NULL,
+                       handle_client,
+                       client_fd);
 
-        fwrite(buffer, 1, bytes, fp);
+        pthread_detach(tid);
     }
 
-    printf("File Transfer Successful\n");
-
-    fclose(fp);
-    close(client_fd);
     close(server_fd);
 
     return 0;

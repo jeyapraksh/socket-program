@@ -1,13 +1,13 @@
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -pthread
 
 all: server client
 
 server: server.c
-	gcc server.c -o server
+	gcc server.c -o server -pthread
 
 client: client.c
 	gcc client.c -o client
 
 clean:
-	rm -f server client received.txt
+	rm -f server client
