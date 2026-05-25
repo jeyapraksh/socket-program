@@ -8,7 +8,7 @@ int main() {
     int server_fd, client_fd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t addr_size;
-    char buffer[1024] = {0};
+    char buffer[1024];
 
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -21,7 +21,7 @@ int main() {
 
     listen(server_fd, 5);
 
-    printf("Server waiting...\n");
+    printf("Waiting for client...\n");
 
     addr_size = sizeof(client_addr);
 
@@ -32,12 +32,24 @@ int main() {
     printf("Client Connected: %s\n",
            inet_ntoa(client_addr.sin_addr));
 
-    recv(client_fd, buffer, sizeof(buffer), 0);
+    while (1) {
 
-    printf("Received: %s\n", buffer);
+        memset(buffer, 0, sizeof(buffer));
+        recv(client_fd, buffer, sizeof(buffer), 0);
 
-    send(client_fd, "Hello Client",
-         strlen("Hello Client"), 0);
+        printf("[Client]: %s", buffer);
+
+        if (strncmp(buffer, "exit", 4) == 0)
+            break;
+
+        printf("[Server]: ");
+        fgets(buffer, sizeof(buffer), stdin);
+
+        send(client_fd, buffer, strlen(buffer), 0);
+
+        if (strncmp(buffer, "exit", 4) == 0)
+            break;
+    }
 
     close(client_fd);
     close(server_fd);

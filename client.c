@@ -7,7 +7,7 @@
 int main() {
     int sock;
     struct sockaddr_in server_addr;
-    char buffer[1024] = {0};
+    char buffer[1024];
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -21,12 +21,24 @@ int main() {
            (struct sockaddr*)&server_addr,
            sizeof(server_addr));
 
-    send(sock, "Hello Server",
-         strlen("Hello Server"), 0);
+    while (1) {
 
-    recv(sock, buffer, sizeof(buffer), 0);
+        printf("[Client]: ");
+        fgets(buffer, sizeof(buffer), stdin);
 
-    printf("Server Reply: %s\n", buffer);
+        send(sock, buffer, strlen(buffer), 0);
+
+        if (strncmp(buffer, "exit", 4) == 0)
+            break;
+
+        memset(buffer, 0, sizeof(buffer));
+        recv(sock, buffer, sizeof(buffer), 0);
+
+        printf("[Server]: %s", buffer);
+
+        if (strncmp(buffer, "exit", 4) == 0)
+            break;
+    }
 
     close(sock);
 
