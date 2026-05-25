@@ -3,56 +3,41 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <ctype.h>
 
 int main() {
-    int server_fd, client_fd;
+    int sockfd;
     struct sockaddr_in server_addr, client_addr;
-    socklen_t addr_size;
+    socklen_t len;
     char buffer[1024];
+    int i;
 
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    bind(server_fd, (struct sockaddr*)&server_addr,
+    bind(sockfd,
+         (struct sockaddr*)&server_addr,
          sizeof(server_addr));
 
-    listen(server_fd, 5);
+    printf("UDP Server Waiting...\n");
 
-    printf("Waiting for client...\n");
+    len = sizeof(client_addr);
 
-    addr_size = sizeof(client_addr);
+    recvfrom(sockfd, buffer, sizeof(buffer), 0,
+             (struct sockaddr*)&client_addr, &len);
 
-    client_fd = accept(server_fd,
-                      (struct sockaddr*)&client_addr,
-                      &addr_size);
+    printf("Received: %s\n", buffer);
 
-    printf("Client Connected: %s\n",
-           inet_ntoa(client_addr.sin_addr));
+    for(i = 0; buffer[i]; i++)
+        buffer[i] = toupper(buffer[i]);
 
-    while (1) {
+    sendto(sockfd, buffer, strlen(buffer), 0,
+           (struct sockaddr*)&client_addr, len);
 
-        memset(buffer, 0, sizeof(buffer));
-        recv(client_fd, buffer, sizeof(buffer), 0);
-
-        printf("[Client]: %s", buffer);
-
-        if (strncmp(buffer, "exit", 4) == 0)
-            break;
-
-        printf("[Server]: ");
-        fgets(buffer, sizeof(buffer), stdin);
-
-        send(client_fd, buffer, strlen(buffer), 0);
-
-        if (strncmp(buffer, "exit", 4) == 0)
-            break;
-    }
-
-    close(client_fd);
-    close(server_fd);
+    close(sockfd);
 
     return 0;
 }

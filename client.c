@@ -5,11 +5,12 @@
 #include <arpa/inet.h>
 
 int main() {
-    int sock;
+    int sockfd;
     struct sockaddr_in server_addr;
-    char buffer[1024];
+    socklen_t len;
+    char buffer[1024] = "Networking Lab";
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);
@@ -17,30 +18,19 @@ int main() {
     inet_pton(AF_INET, "127.0.0.1",
               &server_addr.sin_addr);
 
-    connect(sock,
-           (struct sockaddr*)&server_addr,
-           sizeof(server_addr));
+    len = sizeof(server_addr);
 
-    while (1) {
+    sendto(sockfd, buffer, strlen(buffer), 0,
+           (struct sockaddr*)&server_addr, len);
 
-        printf("[Client]: ");
-        fgets(buffer, sizeof(buffer), stdin);
+    printf("Sent: %s\n", buffer);
 
-        send(sock, buffer, strlen(buffer), 0);
+    recvfrom(sockfd, buffer, sizeof(buffer), 0,
+             (struct sockaddr*)&server_addr, &len);
 
-        if (strncmp(buffer, "exit", 4) == 0)
-            break;
+    printf("Received: %s\n", buffer);
 
-        memset(buffer, 0, sizeof(buffer));
-        recv(sock, buffer, sizeof(buffer), 0);
-
-        printf("[Server]: %s", buffer);
-
-        if (strncmp(buffer, "exit", 4) == 0)
-            break;
-    }
-
-    close(sock);
+    close(sockfd);
 
     return 0;
 }
